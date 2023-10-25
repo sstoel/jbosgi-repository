@@ -71,7 +71,7 @@ import org.osgi.service.repository.RepositoryContent;
  */
 @RunWith(Arquillian.class)
 public class RepositoryTCKBasedTestCase extends AbstractRepositoryTest {
-    
+
     @Deployment
     public static JavaArchive createTestDeployment() {
         final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "testcase-deployment");

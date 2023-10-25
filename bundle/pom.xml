@@ -119,8 +119,8 @@
                         <Import-Package>
                             javax.xml.namespace,
                             javax.xml.stream,
-                            org.jboss.osgi.metadata;version="[6.0,7.0)",
-                            org.jboss.osgi.resolver;version="[6.0,7.0)",
+                            org.jboss.osgi.metadata;version="[6.0,7.1.0.Final)",
+                            org.jboss.osgi.resolver;version="[6.0,7.1.0.Final)",
                             org.jboss.osgi.resolver.spi;version="[6.0,7.0)",
                             org.jboss.osgi.spi;version="[6.0,7.0)",
                             org.osgi.framework;version="[1.7,2.0)",

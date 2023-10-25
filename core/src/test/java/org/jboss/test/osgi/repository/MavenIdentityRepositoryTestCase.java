@@ -69,7 +69,7 @@ public class MavenIdentityRepositoryTestCase extends AbstractRepositoryTest {
 
     @Test
     public void testResourceWithValidMetaData() throws Exception {
-        MavenCoordinates mavenid = MavenCoordinates.parse("org.apache.felix:org.apache.felix.configadmin:1.2.8");
+        MavenCoordinates mavenid = MavenCoordinates.parse("org.apache.felix:org.apache.felix.configadmin:1.9.26");
         XRequirement req = XRequirementBuilder.create(mavenid).getRequirement();
         Collection<Capability> caps = repository.findProviders(req);
         Assert.assertEquals("One capability", 1, caps.size());
@@ -79,7 +79,7 @@ public class MavenIdentityRepositoryTestCase extends AbstractRepositoryTest {
         XIdentityCapability icap = resource.getIdentityCapability();
         Assert.assertEquals(IdentityNamespace.IDENTITY_NAMESPACE, icap.getNamespace());
         Assert.assertEquals("org.apache.felix.configadmin", icap.getName());
-        Assert.assertEquals(Version.parseVersion("1.2.8"), icap.getVersion());
+        Assert.assertEquals(Version.parseVersion("1.9.26"), icap.getVersion());
         Assert.assertEquals(IdentityNamespace.TYPE_BUNDLE, icap.getType());
 
         // Add the resource to storage and verify again
@@ -91,7 +91,7 @@ public class MavenIdentityRepositoryTestCase extends AbstractRepositoryTest {
         Manifest manifest = new JarInputStream(content.getContent()).getManifest();
         OSGiMetaData metaData = OSGiMetaDataBuilder.load(manifest);
         Assert.assertEquals("org.apache.felix.configadmin", metaData.getBundleSymbolicName());
-        Assert.assertEquals(Version.parseVersion("1.2.8"), metaData.getBundleVersion());
+        Assert.assertEquals(Version.parseVersion("1.9.26"), metaData.getBundleVersion());
     }
 
     @Test

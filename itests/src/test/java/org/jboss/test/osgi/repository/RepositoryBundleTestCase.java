@@ -26,6 +26,7 @@ import java.util.Map;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.osgi.metadata.OSGiManifestBuilder;
 import org.jboss.osgi.repository.RepositoryReader;
 import org.jboss.osgi.repository.RepositoryStorage;
@@ -38,12 +39,12 @@ import org.jboss.osgi.resolver.XRequirement;
 import org.jboss.osgi.resolver.XRequirementBuilder;
 import org.jboss.osgi.resolver.XResource;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.asset.Asset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleReference;
 import org.osgi.framework.Version;
 import org.osgi.framework.namespace.PackageNamespace;
@@ -61,28 +62,28 @@ import org.osgi.service.repository.RepositoryContent;
 @RunWith(Arquillian.class)
 public class RepositoryBundleTestCase extends AbstractRepositoryTest {
 
+    @ArquillianResource
+    BundleContext context;
+
     @Deployment
     public static JavaArchive createdeployment() {
         final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "example-bundle");
+        System.out.println("MAKING ARCHIVE");
         archive.addClasses(AbstractRepositoryTest.class);
-        archive.setManifest(new Asset() {
-            @Override
-            public InputStream openStream() {
-                OSGiManifestBuilder builder = OSGiManifestBuilder.newInstance();
-                builder.addBundleSymbolicName(archive.getName());
-                builder.addBundleManifestVersion(2);
-                builder.addImportPackages(Repository.class, Resource.class);
-                builder.addImportPackages(XRepository.class, XResource.class);
-                return builder.openStream();
-            }
+        archive.setManifest(() -> {
+            OSGiManifestBuilder builder = OSGiManifestBuilder.newInstance();
+            builder.addBundleSymbolicName(archive.getName());
+            builder.addBundleManifestVersion(2);
+            builder.addImportPackages(Repository.class, Resource.class);
+            builder.addImportPackages(XRepository.class, XResource.class);
+            return builder.openStream();
         });
         return archive;
     }
 
     @Test
     public void testMavenCoordinates() throws Exception {
-
-        MavenCoordinates mavenid = MavenCoordinates.parse("org.apache.felix:org.apache.felix.configadmin:1.2.8");
+        MavenCoordinates mavenid = MavenCoordinates.parse("org.apache.felix:org.apache.felix.configadmin:1.9.26");
         XRequirement req = XRequirementBuilder.create(mavenid).getRequirement();
         Assert.assertNotNull("Requirement not null", req);
 
@@ -100,7 +101,7 @@ public class RepositoryBundleTestCase extends AbstractRepositoryTest {
         XCapability cap = (XCapability) providers.iterator().next();
         XPackageCapability pcap = cap.adapt(XPackageCapability.class);
         Assert.assertEquals("org.apache.felix.cm", pcap.getPackageName());
-        Assert.assertEquals(Version.parseVersion("1.0.0"), pcap.getVersion());
+        Assert.assertEquals(Version.parseVersion("1.2.0"), pcap.getVersion());
 
         XResource resource = cap.getResource();
         XIdentityCapability icap = resource.getIdentityCapability();
@@ -121,7 +122,7 @@ public class RepositoryBundleTestCase extends AbstractRepositoryTest {
     }
 
     @Test
-    public void testRepositoryReader() throws Exception {
+    public void testRepositoryReader() {
 
         RepositoryStorage storage = getRepository().adapt(RepositoryStorage.class);
         RepositoryReader reader = storage.getRepositoryReader();
@@ -137,7 +138,7 @@ public class RepositoryBundleTestCase extends AbstractRepositoryTest {
     @Test
     public void testRepositoryRestart() throws Exception
     {
-        MavenCoordinates mavenid = MavenCoordinates.parse("org.apache.felix:org.apache.felix.configadmin:1.2.8");
+        MavenCoordinates mavenid = MavenCoordinates.parse("org.apache.felix:org.apache.felix.configadmin:1.9.26");
         XRequirement req = XRequirementBuilder.create(mavenid).getRequirement();
         Assert.assertNotNull("Requirement not null", req);
 
@@ -165,6 +166,6 @@ public class RepositoryBundleTestCase extends AbstractRepositoryTest {
         XCapability cap = (XCapability) providers.iterator().next();
         XPackageCapability pcap = cap.adapt(XPackageCapability.class);
         Assert.assertEquals("org.apache.felix.cm", pcap.getPackageName());
-        Assert.assertEquals(Version.parseVersion("1.0.0"), pcap.getVersion());
+        Assert.assertEquals(Version.parseVersion("1.2.0"), pcap.getVersion());
     }
 }
