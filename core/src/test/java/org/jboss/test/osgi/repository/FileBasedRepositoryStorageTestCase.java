@@ -22,7 +22,6 @@ package org.jboss.test.osgi.repository;
 import static org.osgi.framework.namespace.IdentityNamespace.IDENTITY_NAMESPACE;
 import static org.osgi.framework.namespace.PackageNamespace.PACKAGE_NAMESPACE;
 import static org.osgi.service.repository.ContentNamespace.CAPABILITY_MIME_ATTRIBUTE;
-import static org.osgi.service.repository.ContentNamespace.CAPABILITY_SIZE_ATTRIBUTE;
 import static org.osgi.service.repository.ContentNamespace.CAPABILITY_URL_ATTRIBUTE;
 import static org.osgi.service.repository.ContentNamespace.CONTENT_NAMESPACE;
 
@@ -63,7 +62,6 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.osgi.resource.Capability;
@@ -110,9 +108,6 @@ public class FileBasedRepositoryStorageTestCase extends AbstractRepositoryTest {
             builder.addBundleManifestVersion(2);
             builder.addImportPackages(Repository.class, Resource.class);
             builder.addImportPackages(XRepository.class, XResource.class);
-            //dirs={filter=(&(osgi.ee=JavaSE)(version=1.8))
-
-            builder.addRequiredCapability("osgi.ee", null, Map.of("filter", "(&(osgi.ee=JavaSE)(version=21))"));
             builder.openStream();
     }
 

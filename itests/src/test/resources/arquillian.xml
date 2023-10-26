@@ -4,7 +4,6 @@
 
 	<container qualifier="jboss" default="true">
 		<configuration>
-			<property name="autostartBundle">false</property>
             <property name="frameworkProperties">src/test/resources/jboss-osgi-framework.properties</property>
 		</configuration>
 	</container>
