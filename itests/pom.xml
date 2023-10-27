@@ -47,6 +47,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>org.jboss.arquillian.osgi</groupId>
+            <artifactId>arquillian-osgi-bundle</artifactId>
+            <version>2.2.3.Fork</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.jboss.arquillian.container</groupId>
             <artifactId>arquillian-container-jbosgi-embedded</artifactId>
             <scope>test</scope>
@@ -72,6 +78,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.jboss.osgi.logging</groupId>
+            <artifactId>jboss-osgi-logging</artifactId>
+            <version>4.1.0.Final</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.jboss.logmanager</groupId>
             <artifactId>jboss-logmanager</artifactId>
             <scope>test</scope>
@@ -84,11 +96,6 @@
         <dependency>
             <groupId>org.jboss.modules</groupId>
             <artifactId>jboss-modules</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jboss.logging</groupId>
-            <artifactId>jboss-logging</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -109,6 +116,13 @@
         <plugins>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.maven.surefire</groupId>
+                        <artifactId>surefire-junit47</artifactId>
+                        <version>3.1.2</version>
+                    </dependency>
+                </dependencies>
                 <configuration>
                     <systemPropertyVariables>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
@@ -136,6 +150,7 @@
                 <dependency>
                     <groupId>org.jboss.osgi.equinox</groupId>
                     <artifactId>jboss-osgi-equinox</artifactId>
+                    <version>3.5.2</version>
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
@@ -148,7 +163,7 @@
                                 <id>bundles</id>
                                 <phase>test-compile</phase>
                                 <goals>
-                                    <goal>directory-single</goal>
+                                    <goal>single</goal>
                                 </goals>
                                 <configuration>
                                     <finalName>test-libs</finalName>
@@ -191,7 +206,7 @@
                                 <id>bundles</id>
                                 <phase>test-compile</phase>
                                 <goals>
-                                    <goal>directory-single</goal>
+                                    <goal>single</goal>
                                 </goals>
                                 <configuration>
                                     <finalName>test-libs</finalName>

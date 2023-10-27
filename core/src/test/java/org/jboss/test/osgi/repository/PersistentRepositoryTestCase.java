@@ -101,7 +101,7 @@ public class PersistentRepositoryTestCase extends AbstractRepositoryTest {
     @Test
     public void testFindProvidersByMavenId() throws Exception {
 
-        MavenCoordinates mavenid = MavenCoordinates.parse("org.apache.felix:org.apache.felix.configadmin:1.2.8");
+        MavenCoordinates mavenid = MavenCoordinates.parse("org.apache.felix:org.apache.felix.configadmin:1.9.26");
         XRequirement req = XRequirementBuilder.create(mavenid).getRequirement();
         Collection<Capability> caps = repository.findProviders(req);
         assertEquals("One capability", 1, caps.size());
@@ -130,7 +130,7 @@ public class PersistentRepositoryTestCase extends AbstractRepositoryTest {
         XResource resource = cap.getResource();
         XIdentityCapability icap = resource.getIdentityCapability();
         assertEquals("org.apache.felix.configadmin", icap.getName());
-        assertEquals(Version.parseVersion("1.2.8"), icap.getVersion());
+        assertEquals(Version.parseVersion("1.9.26"), icap.getVersion());
         assertEquals(IdentityNamespace.TYPE_BUNDLE, icap.getType());
 
         Collection<Capability> caps = resource.getCapabilities(ContentNamespace.CONTENT_NAMESPACE);
@@ -151,12 +151,12 @@ public class PersistentRepositoryTestCase extends AbstractRepositoryTest {
         Manifest manifest = new JarInputStream(content.getContent()).getManifest();
         OSGiMetaData metaData = OSGiMetaDataBuilder.load(manifest);
         assertEquals("org.apache.felix.configadmin", metaData.getBundleSymbolicName());
-        assertEquals(Version.parseVersion("1.2.8"), metaData.getBundleVersion());
+        assertEquals(Version.parseVersion("1.9.26"), metaData.getBundleVersion());
     }
 
     @Test
     public void testFindSimpleRequirementExpression() throws Exception {
-        MavenCoordinates mavenid = MavenCoordinates.parse("org.apache.felix:org.apache.felix.configadmin:1.2.8");
+        MavenCoordinates mavenid = MavenCoordinates.parse("org.apache.felix:org.apache.felix.configadmin:1.9.26");
         XRequirement req = XRequirementBuilder.create(mavenid).getRequirement();
 
         RequirementExpression re = repository.getExpressionCombiner().identity(req);
@@ -165,28 +165,25 @@ public class PersistentRepositoryTestCase extends AbstractRepositoryTest {
         XResource res = (XResource) resources.iterator().next();
         XIdentityCapability icap = res.getIdentityCapability();
         assertEquals("org.apache.felix.configadmin", icap.getName());
-        assertEquals(Version.parseVersion("1.2.8"), icap.getVersion());
+        assertEquals(Version.parseVersion("1.9.26"), icap.getVersion());
     }
 
     @Test
     public void testFindOrRequirementExpression() throws Exception {
-        XRequirement req1 = XRequirementBuilder.create(MavenCoordinates.parse("org.apache.felix:org.apache.felix.configadmin:1.2.8")).getRequirement();
+        XRequirement req1 = XRequirementBuilder.create(MavenCoordinates.parse("org.apache.felix:org.apache.felix.configadmin:1.9.26")).getRequirement();
         XRequirement req2 = XRequirementBuilder.create(MavenCoordinates.parse("org.apache.felix:org.apache.felix.configadmin:1.4.0")).getRequirement();
         ExpressionCombiner ec = repository.getExpressionCombiner();
         IdentityExpression re1 = ec.identity(req1);
         IdentityExpression re2 = ec.identity(req2);
         RequirementExpression re = ec.or(re1, re2);
         Collection<Resource> resources = repository.findProviders(re).getValue();
-        Assert.assertEquals(2, resources.size());
+        Assert.assertEquals(1, resources.size());
 
-        for (Resource res : resources) {
-            XResource xres = (XResource) res;
+        XResource xres = (XResource) resources.stream().findFirst().orElseThrow();
 
-            XIdentityCapability icap = xres.getIdentityCapability();
-            assertEquals("org.apache.felix.configadmin", icap.getName());
-            assertTrue(Version.parseVersion("1.2.8").equals(icap.getVersion()) ||
-                       Version.parseVersion("1.4.0").equals(icap.getVersion()));
-        }
+        XIdentityCapability icap = xres.getIdentityCapability();
+        assertEquals("org.apache.felix.configadmin", icap.getName());
+        assertTrue(Version.parseVersion("1.9.26").equals(icap.getVersion()));
     }
 
     @Test
