@@ -171,19 +171,23 @@ public class PersistentRepositoryTestCase extends AbstractRepositoryTest {
     @Test
     public void testFindOrRequirementExpression() throws Exception {
         XRequirement req1 = XRequirementBuilder.create(MavenCoordinates.parse("org.apache.felix:org.apache.felix.configadmin:1.9.26")).getRequirement();
-        XRequirement req2 = XRequirementBuilder.create(MavenCoordinates.parse("org.apache.felix:org.apache.felix.configadmin:1.4.0")).getRequirement();
+        XRequirement req2 = XRequirementBuilder.create(MavenCoordinates.parse("org.apache.felix:org.apache.felix.configadmin:1.9.22")).getRequirement();
         ExpressionCombiner ec = repository.getExpressionCombiner();
         IdentityExpression re1 = ec.identity(req1);
         IdentityExpression re2 = ec.identity(req2);
         RequirementExpression re = ec.or(re1, re2);
         Collection<Resource> resources = repository.findProviders(re).getValue();
-        Assert.assertEquals(1, resources.size());
+        Assert.assertEquals(2, resources.size());
 
-        XResource xres = (XResource) resources.stream().findFirst().orElseThrow();
-
-        XIdentityCapability icap = xres.getIdentityCapability();
-        assertEquals("org.apache.felix.configadmin", icap.getName());
-        assertTrue(Version.parseVersion("1.9.26").equals(icap.getVersion()));
+        // Both branches of the expression provide a resource
+        Set<Version> versions = new HashSet<Version>();
+        for (Resource res : resources) {
+            XIdentityCapability icap = ((XResource) res).getIdentityCapability();
+            assertEquals("org.apache.felix.configadmin", icap.getName());
+            versions.add(icap.getVersion());
+        }
+        assertTrue(versions.contains(Version.parseVersion("1.9.26")));
+        assertTrue(versions.contains(Version.parseVersion("1.9.22")));
     }
 
     @Test

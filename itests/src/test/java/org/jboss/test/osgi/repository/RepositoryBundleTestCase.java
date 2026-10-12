@@ -68,7 +68,6 @@ public class RepositoryBundleTestCase extends AbstractRepositoryTest {
     @Deployment
     public static JavaArchive createdeployment() {
         final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "example-bundle");
-        System.out.println("MAKING ARCHIVE");
         archive.addClasses(AbstractRepositoryTest.class);
         archive.setManifest(() -> {
             OSGiManifestBuilder builder = OSGiManifestBuilder.newInstance();

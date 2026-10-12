@@ -55,11 +55,11 @@ public class MavenIdentityRepository extends AbstractRepository implements XRepo
     /** The configuration for the {@link MavenIdentityRepository} */
     public interface Configuration {
 
-        /** The default JBoss Nexus repository: http://repository.jboss.org/nexus/content/groups/public */
-        String JBOSS_NEXUS_BASE = "http://repository.jboss.org/nexus/content/groups/public";
+        /** The default JBoss Nexus repository: https://repository.jboss.org/nexus/repository/public */
+        String JBOSS_NEXUS_BASE = "https://repository.jboss.org/nexus/repository/public";
 
-        /** The default Maven Central repository: http://repo1.maven.org/maven2 */
-        String MAVEN_CENTRAL_BASE = "http://repo1.maven.org/maven2";
+        /** The default Maven Central repository: https://repo1.maven.org/maven2 */
+        String MAVEN_CENTRAL_BASE = "https://repo1.maven.org/maven2";
 
         /** Get the list of configured base URLs */
         List<URL> getBaseURLs();

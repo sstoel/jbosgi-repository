@@ -22,6 +22,7 @@ package org.jboss.test.osgi.repository;
 import static org.osgi.framework.namespace.IdentityNamespace.IDENTITY_NAMESPACE;
 import static org.osgi.framework.namespace.PackageNamespace.PACKAGE_NAMESPACE;
 import static org.osgi.service.repository.ContentNamespace.CAPABILITY_MIME_ATTRIBUTE;
+import static org.osgi.service.repository.ContentNamespace.CAPABILITY_SIZE_ATTRIBUTE;
 import static org.osgi.service.repository.ContentNamespace.CAPABILITY_URL_ATTRIBUTE;
 import static org.osgi.service.repository.ContentNamespace.CONTENT_NAMESPACE;
 
@@ -65,7 +66,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.osgi.resource.Capability;
-import org.osgi.resource.Resource;
 import org.osgi.service.repository.Repository;
 import org.osgi.service.repository.RepositoryContent;
 
@@ -100,15 +100,6 @@ public class FileBasedRepositoryStorageTestCase extends AbstractRepositoryTest {
         BundleInfo infoA = BundleInfo.createBundleInfo(bundleAjar.toURI().toURL());
         bw.print(infoA.getOSGiMetadata().toString());
         bw.close();
-
-        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "example-bundle");
-        archive.addClasses(AbstractRepositoryTest.class);
-            OSGiManifestBuilder builder = OSGiManifestBuilder.newInstance();
-            builder.addBundleSymbolicName(archive.getName());
-            builder.addBundleManifestVersion(2);
-            builder.addImportPackages(Repository.class, Resource.class);
-            builder.addImportPackages(XRepository.class, XResource.class);
-            builder.openStream();
     }
 
     @After
@@ -260,7 +251,7 @@ public class FileBasedRepositoryStorageTestCase extends AbstractRepositoryTest {
         Assert.assertEquals("application/vnd.osgi.bundle", ccap.getMimeType());
         Assert.assertEquals("application/vnd.osgi.bundle", cap.getAttribute(CAPABILITY_MIME_ATTRIBUTE));
         Assert.assertEquals(398L, ccap.getSize().longValue());
-        Assert.assertEquals(398L, ccap.getSize().longValue());
+        Assert.assertEquals(398L, ((Number) cap.getAttribute(CAPABILITY_SIZE_ATTRIBUTE)).longValue());
         String contentURL = (String) ccap.getAttribute(CAPABILITY_URL_ATTRIBUTE);
         File contentFile = URLResourceBuilderFactory.urlToFile(new URL(contentURL)).getCanonicalFile();
         Assert.assertTrue("File exists: " + contentFile, contentFile.exists());
