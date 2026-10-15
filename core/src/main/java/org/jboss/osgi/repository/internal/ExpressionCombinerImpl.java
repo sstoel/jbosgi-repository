@@ -25,6 +25,7 @@ package org.jboss.osgi.repository.internal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import org.osgi.resource.Requirement;
@@ -43,14 +44,16 @@ public class ExpressionCombinerImpl implements ExpressionCombiner {
 
     @Override
     public AndExpression and(final RequirementExpression expr1, final RequirementExpression expr2, final RequirementExpression... moreExprs) {
+        final List<RequirementExpression> l = new ArrayList<RequirementExpression>();
+        l.add(expr1);
+        l.add(expr2);
+        l.addAll(Arrays.asList(moreExprs));
+        // The list of an expression cannot be changed (132.5)
+        final List<RequirementExpression> expressions = Collections.unmodifiableList(l);
         return new AndExpression() {
             @Override
             public List<RequirementExpression> getRequirementExpressions() {
-                List<RequirementExpression> l = new ArrayList<RequirementExpression>();
-                l.add(expr1);
-                l.add(expr2);
-                l.addAll(Arrays.asList(moreExprs));
-                return l;
+                return expressions;
             }
 
             @Override
@@ -97,14 +100,16 @@ public class ExpressionCombinerImpl implements ExpressionCombiner {
 
     @Override
     public OrExpression or(final RequirementExpression expr1, final RequirementExpression expr2, final RequirementExpression... moreExprs) {
+        final List<RequirementExpression> l = new ArrayList<RequirementExpression>();
+        l.add(expr1);
+        l.add(expr2);
+        l.addAll(Arrays.asList(moreExprs));
+        // The list of an expression cannot be changed (132.5)
+        final List<RequirementExpression> expressions = Collections.unmodifiableList(l);
         return new OrExpression() {
             @Override
             public List<RequirementExpression> getRequirementExpressions() {
-                List<RequirementExpression> l = new ArrayList<RequirementExpression>();
-                l.add(expr1);
-                l.add(expr2);
-                l.addAll(Arrays.asList(moreExprs));
-                return l;
+                return expressions;
             }
 
             @Override
