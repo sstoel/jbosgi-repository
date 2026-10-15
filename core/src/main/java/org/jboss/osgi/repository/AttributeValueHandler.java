@@ -190,7 +190,8 @@ public final class AttributeValueHandler {
                     result.append(escape(val));
                 }
             } else {
-                result.append(escape(value));
+                // Only list elements are escaped, a scalar is written without conversion (132.5.6)
+                result.append(value.toString());
             }
             return result.toString();
         }

@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.jboss.osgi.repository.RepositoryStorage;
 import org.jboss.osgi.repository.RepositoryStorageFactory;
@@ -45,7 +46,7 @@ import org.osgi.resource.Requirement;
 public class AbstractPersistentRepository extends AbstractRepository implements XPersistentRepository {
 
     private final RepositoryStorage storage;
-    private final List<XRepository> delegates = new ArrayList<XRepository>();
+    private final List<XRepository> delegates = new CopyOnWriteArrayList<XRepository>();
 
     public AbstractPersistentRepository(RepositoryStorageFactory factory) {
         if (factory == null)
@@ -115,9 +116,13 @@ public class AbstractPersistentRepository extends AbstractRepository implements 
                     for (Capability cap : caps) {
                         XResource res = (XResource) cap.getResource();
                         XIdentityCapability icap = res.getIdentityCapability();
-                        XResource storageResource = storage.getResource(icap);
-                        if (storageResource == null) {
-                            storageResource = storage.addResource(res);
+                        // Check and add atomically, a concurrent lookup may add the same resource
+                        XResource storageResource;
+                        synchronized (storage) {
+                            storageResource = storage.getResource(icap);
+                            if (storageResource == null) {
+                                storageResource = storage.addResource(res);
+                            }
                         }
                         providers.add(storageResource.getIdentityCapability());
                     }

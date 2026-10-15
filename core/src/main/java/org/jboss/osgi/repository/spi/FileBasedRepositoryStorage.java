@@ -19,8 +19,10 @@
  */
 package org.jboss.osgi.repository.spi;
 
+import static org.jboss.osgi.repository.RepositoryLogger.LOGGER;
 import static org.jboss.osgi.repository.RepositoryMessages.MESSAGES;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -30,6 +32,9 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
@@ -154,7 +159,7 @@ public class FileBasedRepositoryStorage extends MemoryRepositoryStorage {
         }
         result = super.addResource(result);
         if (writeXML == true) {
-            writeRepositoryXML();
+            writeRepositoryXMLAfterAdd(result);
         }
         return result;
     }
@@ -162,9 +167,19 @@ public class FileBasedRepositoryStorage extends MemoryRepositoryStorage {
     private XResource addAbstractResource(XResource res, boolean writeXML) throws RepositoryStorageException {
         XResource result = super.addResource(res);
         if (writeXML == true) {
-            writeRepositoryXML();
+            writeRepositoryXMLAfterAdd(result);
         }
         return result;
+    }
+
+    // A resource that cannot be persisted is not added
+    private void writeRepositoryXMLAfterAdd(XResource res) {
+        try {
+            writeRepositoryXML();
+        } catch (RuntimeException ex) {
+            super.removeResource(res);
+            throw ex;
+        }
     }
 
     @Override
@@ -173,21 +188,52 @@ public class FileBasedRepositoryStorage extends MemoryRepositoryStorage {
     }
 
     private synchronized boolean removeResourceInternal(XResource res, boolean writeXML) {
-        boolean result = true;
-        List<Capability> ccaps = res.getCapabilities(ContentNamespace.CONTENT_NAMESPACE);
-        if (!ccaps.isEmpty()) {
-            XCapability ccap = (XCapability) ccaps.iterator().next();
-            String fileURL = (String) ccap.getAttribute(ContentNamespace.CAPABILITY_URL_ATTRIBUTE);
-            File contentFile = new File(fileURL.substring("file:".length()));
-            if (contentFile.exists()) {
-                result = deleteRecursive(contentFile.getParentFile());
+        if (res == null)
+            throw MESSAGES.illegalArgumentNull("resource");
+
+        // Only remove the resource held by this storage, never the content of the given resource
+        XResource storageResource = getResource(res.getIdentityCapability());
+        if (storageResource == null)
+            return false;
+
+        boolean result = super.removeResource(storageResource);
+        if (writeXML == true) {
+            try {
+                writeRepositoryXML();
+            } catch (RuntimeException ex) {
+                super.addResource(storageResource);
+                throw ex;
             }
         }
-        result &= super.removeResource(res);
-        if (writeXML == true) {
-            writeRepositoryXML();
+
+        // Delete the content only after the removal is persisted
+        for (Capability cap : storageResource.getCapabilities(ContentNamespace.CONTENT_NAMESPACE)) {
+            File contentDir = getStorageContentDir((XCapability) cap);
+            if (contentDir != null) {
+                result &= deleteRecursive(contentDir);
+            }
         }
         return result;
+    }
+
+    // Get the directory of the given content inside this storage, or null if the content is not in this storage
+    private File getStorageContentDir(XCapability ccap) {
+        String contentURL = (String) ccap.getAttribute(ContentNamespace.CAPABILITY_URL_ATTRIBUTE);
+        if (contentURL == null)
+            return null;
+        try {
+            File contentFile = URLResourceBuilderFactory.urlToFile(new URL(contentURL)).getCanonicalFile();
+            String storagePath = storageDir.getCanonicalPath() + File.separator;
+            if (contentFile.exists() && contentFile.getPath().startsWith(storagePath)) {
+                File contentDir = contentFile.getParentFile();
+                return contentDir.getPath().startsWith(storagePath) ? contentDir : null;
+            }
+        } catch (IOException ex) {
+            LOGGER.debugf("Cannot access content: %s", contentURL);
+        } catch (URISyntaxException ex) {
+            LOGGER.debugf("Cannot access content: %s", contentURL);
+        }
+        return null;
     }
 
     private XResourceBuilder<XResource> createResourceInternal(XResource resource) {
@@ -289,25 +335,48 @@ public class FileBasedRepositoryStorage extends MemoryRepositoryStorage {
         }
     }
 
+    // Write to a temporary file and replace repository.xml atomically, so that it is never seen partially written
     private void writeRepositoryXML() {
-        RepositoryWriter writer;
+        File tempFile = new File(repoFile.getPath() + ".tmp");
+        FileOutputStream output;
         try {
             repoFile.getParentFile().mkdirs();
-            writer = RepositoryXMLWriter.create(new FileOutputStream(repoFile));
+            output = new FileOutputStream(tempFile);
         } catch (IOException ex) {
             throw MESSAGES.cannotInitializeRepositoryWriter(ex);
         }
-        Map<String, String> attributes = new HashMap<String, String>();
-        attributes.put(Attribute.NAME.getLocalName(), getRepository().getName());
-        attributes.put(Attribute.INCREMENT.getLocalName(), new Long(getResourceIndex().get()).toString());
-        writer.writeRepositoryElement(attributes);
-        RepositoryReader reader = getRepositoryReader();
-        XResource resource = reader.nextResource();
-        while(resource != null) {
-            writer.writeResource(resource);
-            resource = reader.nextResource();
+        try {
+            try {
+                BufferedOutputStream buffer = new BufferedOutputStream(output);
+                RepositoryWriter writer = RepositoryXMLWriter.create(buffer);
+                Map<String, String> attributes = new HashMap<String, String>();
+                attributes.put(Attribute.NAME.getLocalName(), getRepository().getName());
+                attributes.put(Attribute.INCREMENT.getLocalName(), new Long(getResourceIndex().get()).toString());
+                writer.writeRepositoryElement(attributes);
+                RepositoryReader reader = getRepositoryReader();
+                XResource resource = reader.nextResource();
+                while(resource != null) {
+                    writer.writeResource(resource);
+                    resource = reader.nextResource();
+                }
+                writer.close();
+                buffer.flush();
+                output.getFD().sync();
+            } finally {
+                output.close();
+            }
+            try {
+                Files.move(tempFile.toPath(), repoFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException ex) {
+                Files.move(tempFile.toPath(), repoFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException ex) {
+            tempFile.delete();
+            throw MESSAGES.cannotWriteRepositoryElement(ex);
+        } catch (RuntimeException ex) {
+            tempFile.delete();
+            throw ex;
         }
-        writer.close();
     }
 
     private boolean deleteRecursive(File file) {

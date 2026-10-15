@@ -38,6 +38,10 @@ public interface XRepository extends Repository {
      */
     String PROPERTY_MAVEN_REPOSITORY_BASE_URLS = "org.jboss.osgi.repository.maven.base.urls";
     /**
+     * The property that defines the connect and read timeout in milliseconds for the Maven Repository base URLs.
+     */
+    String PROPERTY_MAVEN_REPOSITORY_TIMEOUT = "org.jboss.osgi.repository.maven.timeout";
+    /**
      * The property that defines the repository storage directory.
      */
     String PROPERTY_REPOSITORY_STORAGE_DIR = "org.jboss.osgi.repository.storage.dir";

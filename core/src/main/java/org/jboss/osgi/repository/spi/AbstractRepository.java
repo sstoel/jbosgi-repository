@@ -184,9 +184,8 @@ public abstract class AbstractRepository implements XRepository {
     private Collection<Resource> findNotExpression(NotExpression ne) {
         RequirementExpression re = ne.getRequirementExpression();
         if (re instanceof IdentityExpression) {
-            Requirement req = ((IdentityExpression) re).getRequirement();
-            Requirement nreq = negateRequirement(req);
-            return findSimpleRequirement(nreq);
+            // A resource matches not(req) when none of its capabilities matches req
+            return findInverse(re);
         } else if (re instanceof NotExpression) {
             return findProvidersImpl(((NotExpression) re).getRequirementExpression());
         } else if (re instanceof AndExpression) {
@@ -211,16 +210,6 @@ public abstract class AbstractRepository implements XRepository {
             result.add(res);
         }
         return result;
-    }
-
-    private Requirement negateRequirement(Requirement req) {
-        String filter = req.getDirectives().get("filter");
-        if (filter == null) {
-            throw new IllegalStateException("No filter directive: " + req);
-        }
-        String invFilter = "(!" + filter + ")";
-        return newRequirementBuilder(req.getNamespace()).setAttributes(req.getAttributes())
-                .setDirectives(req.getDirectives()).addDirective("filter", invFilter).build();
     }
 
     @Override

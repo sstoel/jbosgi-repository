@@ -397,8 +397,10 @@ public class PersistentRepositoryTestCase extends AbstractRepositoryTest {
         IdentityExpression req3 = repository.newRequirementBuilder("y").addDirective("filter", "(jam=lots)").buildExpression();
         RequirementExpression rec = ec.not(req3);
         Collection<Resource> provc = repository.findProviders(rec).getValue();
-        assertEquals(1, provc.size());
-        assertEquals(Collections.singleton(Version.parseVersion("2.3.1")), getVersions(provc));
+        // not() is the complement: bar 1.2.3.beta4 has no 'y' capability, so it does not match req3 either
+        assertEquals(2, provc.size());
+        assertEquals(new HashSet<Version>(Arrays.asList(Version.parseVersion("1.2.3.beta4"), Version.parseVersion("2.3.1"))),
+                getVersions(provc));
 
         IdentityExpression req4 = repository.newRequirementBuilder("osgi.identity").addDirective("filter", "(osgi.identity=foo)").buildExpression();
         RequirementExpression red = ec.not(req4);

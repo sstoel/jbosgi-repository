@@ -24,8 +24,10 @@ import static org.jboss.osgi.repository.RepositoryMessages.MESSAGES;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,7 +52,18 @@ import org.osgi.resource.Requirement;
  */
 public class MavenIdentityRepository extends AbstractRepository implements XRepository {
 
+    /** The default connect and read timeout in milliseconds */
+    public static final int DEFAULT_TIMEOUT = 30000;
+
+    private static final ConfigurationPropertyProvider SYSTEM_PROPERTY_PROVIDER = new ConfigurationPropertyProvider() {
+        @Override
+        public String getProperty(String key, String defaultValue) {
+            return SecurityActions.getSystemProperty(key, defaultValue);
+        }
+    };
+
     private final URL[] baserepos;
+    private final int timeout;
 
     /** The configuration for the {@link MavenIdentityRepository} */
     public interface Configuration {
@@ -73,24 +86,25 @@ public class MavenIdentityRepository extends AbstractRepository implements XRepo
     }
 
     public MavenIdentityRepository() {
-        this(new ConfigurationPropertyProvider() {
-            @Override
-            public String getProperty(String key, String defaultValue) {
-                return SecurityActions.getSystemProperty(key, defaultValue);
-            }
-        });
+        this(SYSTEM_PROPERTY_PROVIDER);
     }
 
     public MavenIdentityRepository(ConfigurationPropertyProvider provider) {
-        this(getDefaultConfiguration(provider));
+        this(getDefaultConfiguration(provider), provider);
     }
 
     public MavenIdentityRepository(Configuration configuration) {
+        this(configuration, SYSTEM_PROPERTY_PROVIDER);
+    }
+
+    private MavenIdentityRepository(Configuration configuration, ConfigurationPropertyProvider provider) {
         List<URL> repos = new ArrayList<URL>();
         for (URL baseURL : configuration.getBaseURLs()) {
             repos.add(baseURL);
         }
         baserepos = repos.toArray(new URL[repos.size()]);
+        String property = provider.getProperty(PROPERTY_MAVEN_REPOSITORY_TIMEOUT, null);
+        timeout = property != null ? Integer.parseInt(property.trim()) : DEFAULT_TIMEOUT;
     }
 
     /**
@@ -151,9 +165,10 @@ public class MavenIdentityRepository extends AbstractRepository implements XRepo
         for (URL baseURL : baserepos) {
             URL url = mavenId.getArtifactURL(baseURL);
             try {
-                url.openStream().close();
-                contentURL = url;
-                break;
+                if (exists(url)) {
+                    contentURL = url;
+                    break;
+                }
             } catch (IOException e) {
                 LOGGER.debugf("Cannot access input stream for: %s", url);
             }
@@ -177,6 +192,24 @@ public class MavenIdentityRepository extends AbstractRepository implements XRepo
         }
 
         return Collections.unmodifiableList(result);
+    }
+
+    // Probe the artifact with a timeout, an unresponsive repository must not block the caller
+    private boolean exists(URL url) throws IOException {
+        URLConnection con = url.openConnection();
+        con.setConnectTimeout(timeout);
+        con.setReadTimeout(timeout);
+        if (con instanceof HttpURLConnection) {
+            HttpURLConnection httpcon = (HttpURLConnection) con;
+            httpcon.setRequestMethod("HEAD");
+            try {
+                return httpcon.getResponseCode() == HttpURLConnection.HTTP_OK;
+            } finally {
+                httpcon.disconnect();
+            }
+        }
+        con.getInputStream().close();
+        return true;
     }
 
     private static URL getBaseURL(String urlspec) {
