@@ -54,7 +54,7 @@ public class AttributeValueTestCase extends AbstractRepositoryTest {
         // List<String> [a, b]
         value = AttributeValueHandler.readAttributeValue("List<String>", "a,b");
         Assert.assertEquals(Arrays.asList("a","b"), value.getValue());
-        Assert.assertEquals("a, b", value.getValueString());
+        Assert.assertEquals("a,b", value.getValueString());
         Assert.assertEquals(Type.String, value.getType());
         Assert.assertTrue(value.isListType());
         Assert.assertEquals("[type=List<String>, value=a, b]", value.toExternalForm());

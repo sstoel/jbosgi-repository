@@ -24,6 +24,7 @@ import static javax.xml.stream.XMLStreamConstants.START_DOCUMENT;
 import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
 import static org.jboss.osgi.repository.Namespace100.REPOSITORY_NAMESPACE;
 import static org.jboss.osgi.repository.Namespace100.Element.REPOSITORY;
+import static org.jboss.osgi.repository.RepositoryLogger.LOGGER;
 import static org.jboss.osgi.repository.RepositoryMessages.MESSAGES;
 
 import java.io.InputStream;
@@ -56,14 +57,28 @@ import org.osgi.service.repository.ContentNamespace;
  */
 public class RepositoryXMLReader implements RepositoryReader {
 
+    // The namespace of the xml:base attribute
+    private static final String XML_NAMESPACE = "http://www.w3.org/XML/1998/namespace";
+
     private final Map<String, String> attributes = new HashMap<String, String>();
     private final XMLStreamReader reader;
+    private final URL baseURL;
 
+    /**
+     * Create a reader for repository XML of unknown location. Relative content URLs are kept as given.
+     */
     public static RepositoryReader create(InputStream input) {
-        return new RepositoryXMLReader(input);
+        return new RepositoryXMLReader(input, null);
     }
 
-    private RepositoryXMLReader(InputStream input) {
+    /**
+     * Create a reader for repository XML that is loaded from the given URL, relative URLs are resolved against it.
+     */
+    public static RepositoryReader create(InputStream input, URL documentURL) {
+        return new RepositoryXMLReader(input, documentURL);
+    }
+
+    private RepositoryXMLReader(InputStream input, URL documentURL) {
         try {
             reader = XMLInputFactory.newInstance().createXMLStreamReader(input);
         } catch (Exception ex) {
@@ -73,9 +88,18 @@ public class RepositoryXMLReader implements RepositoryReader {
             reader.require(START_DOCUMENT, null, null);
             reader.nextTag();
             reader.require(START_ELEMENT, REPOSITORY_NAMESPACE, REPOSITORY.getLocalName());
+            URL base = documentURL;
             for (int i = 0; i < reader.getAttributeCount(); i++) {
+                // Relative URIs are resolved as specified by XML Base (132.5)
+                if (XML_NAMESPACE.equals(reader.getAttributeNamespace(i))) {
+                    if ("base".equals(reader.getAttributeLocalName(i))) {
+                        base = toURL(base, reader.getAttributeValue(i));
+                    }
+                    continue;
+                }
                 attributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
             }
+            baseURL = base;
         } catch (Exception ex) {
             throw MESSAGES.cannotReadResourceElement(ex, reader.getLocation());
         }
@@ -94,6 +118,15 @@ public class RepositoryXMLReader implements RepositoryReader {
                 switch (element) {
                     case RESOURCE: {
                         return readResourceElement(reader);
+                    }
+                    case REFERRAL: {
+                        LOGGER.warnReferralNotFollowed(reader.getAttributeValue(null, Attribute.URL.toString()));
+                        skipElement(reader);
+                        break;
+                    }
+                    default: {
+                        skipElement(reader);
+                        break;
                     }
                 }
             }
@@ -131,22 +164,22 @@ public class RepositoryXMLReader implements RepositoryReader {
                     readRequirementElement(reader, builder);
                     break;
                 }
+                default: {
+                    skipElement(reader);
+                    break;
+                }
             }
         }
         XResource resource = builder.getResource();
 
         // Transform the resource into an URLResource
+        // A content URL that cannot be resolved, like a relative one of a document with unknown location, is kept as given
         List<Capability> caps = resource.getCapabilities(ContentNamespace.CONTENT_NAMESPACE);
         if (caps.size() > 0) {
             XCapability ccap = (XCapability) caps.get(0);
             String urlspec = (String) ccap.getAttribute(ContentNamespace.CAPABILITY_URL_ATTRIBUTE);
-            if (urlspec != null) {
-                URL contentURL;
-                try {
-                    contentURL = new URL(urlspec);
-                } catch (MalformedURLException ex) {
-                    throw MESSAGES.invalidContentURL(urlspec);
-                }
+            URL contentURL = urlspec != null ? toURL(baseURL, urlspec) : null;
+            if (contentURL != null) {
                 builder = URLResourceBuilderFactory.create(contentURL, ccap.getAttributes());
                 for (Capability cap : resource.getCapabilities(null)) {
                     if (cap != ccap) {
@@ -199,6 +232,10 @@ public class RepositoryXMLReader implements RepositoryReader {
                     readDirectiveElement(reader, dirs);
                     break;
                 }
+                default: {
+                    skipElement(reader);
+                    break;
+                }
             }
         }
     }
@@ -217,6 +254,28 @@ public class RepositoryXMLReader implements RepositoryReader {
         String value = reader.getAttributeValue(null, Attribute.VALUE.toString());
         directives.put(name, value);
         while (reader.hasNext() && reader.nextTag() != END_ELEMENT) {
+        }
+    }
+
+    // Skip an unknown or unsupported element with all its content
+    private void skipElement(XMLStreamReader reader) throws XMLStreamException {
+        int depth = 1;
+        while (depth > 0) {
+            int event = reader.next();
+            if (event == START_ELEMENT) {
+                depth++;
+            } else if (event == END_ELEMENT) {
+                depth--;
+            }
+        }
+    }
+
+    private static URL toURL(URL base, String urlspec) {
+        try {
+            return new URL(base, urlspec);
+        } catch (MalformedURLException ex) {
+            LOGGER.debugf("Cannot resolve URL: %s", urlspec);
+            return null;
         }
     }
 }

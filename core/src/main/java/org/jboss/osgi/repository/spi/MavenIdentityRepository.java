@@ -36,7 +36,6 @@ import java.util.List;
 import org.jboss.osgi.repository.URLResourceBuilderFactory;
 import org.jboss.osgi.repository.XRepository;
 import org.jboss.osgi.resolver.MavenCoordinates;
-import org.jboss.osgi.resolver.XRequirement;
 import org.jboss.osgi.resolver.XResource;
 import org.jboss.osgi.resolver.XResourceBuilder;
 import org.jboss.osgi.resolver.spi.AbstractRequirement;
@@ -147,7 +146,7 @@ public class MavenIdentityRepository extends AbstractRepository implements XRepo
 
         MavenCoordinates mavenId;
         if (req.getDirectives().get("filter") != null) {
-            Filter filter = ((XRequirement)req).getFilter();
+            Filter filter = AbstractRequirement.getFilterFromDirective(req);
             String gpart = AbstractRequirement.getValueFromFilter(filter, "groupId", null);
             String apart = AbstractRequirement.getValueFromFilter(filter, "artifactId", null);
             String tpart = AbstractRequirement.getValueFromFilter(filter, "type", null);

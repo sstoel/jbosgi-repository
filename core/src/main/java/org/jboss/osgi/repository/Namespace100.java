@@ -42,6 +42,7 @@ public interface Namespace100 {
         INCREMENT("increment"),
         VALUE("value"),
         TYPE("type"),
+        URL("url"),
         ;
         private final String name;
 
@@ -79,6 +80,7 @@ public interface Namespace100 {
         ATTRIBUTE("attribute"),
         CAPABILITY("capability"),
         DIRECTIVE("directive"),
+        REFERRAL("referral"),
         REQUIREMENT("requirement"),
         REPOSITORY("repository"),
         RESOURCE("resource"),

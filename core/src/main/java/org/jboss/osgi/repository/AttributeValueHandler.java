@@ -47,8 +47,11 @@ public final class AttributeValueHandler {
         }
         Type type = typespec != null ? Type.valueOf(typespec) : Type.String;
 
-        // Whitespace around the list and around commas must be trimmed
-        valstr = valstr.trim();
+        // A scalar String is used without conversion (132.5.6), whitespace around the list and around commas is trimmed
+        // String list elements are trimmed as well, the Repository TCK (testAttributeDataTypes) expects that
+        if (type != Type.String || listType) {
+            valstr = valstr.trim();
+        }
 
         Object value;
         switch (type) {
@@ -185,7 +188,7 @@ public final class AttributeValueHandler {
             if (listType) {
                 for (Object val : (List<?>) value) {
                     if (result.length() > 0) {
-                        result.append(", ");
+                        result.append(",");
                     }
                     result.append(escape(val));
                 }

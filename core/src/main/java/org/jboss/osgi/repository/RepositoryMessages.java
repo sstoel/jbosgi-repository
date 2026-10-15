@@ -116,4 +116,7 @@ public interface RepositoryMessages {
 
     @Message(id = 20524, value = "Malformed Requirement Expression: %s")
     IllegalArgumentException malformedRequirementExpression(RequirementExpression re);
+
+    @Message(id = 20525, value = "Character U+%04X cannot be written to repository XML: %s")
+    IllegalArgumentException invalidXMLCharacter(int ch, String value);
 }

@@ -164,6 +164,11 @@ public abstract class AbstractRepository implements XRepository {
             }
         }
 
+        // Without a positive condition the not expressions apply to all resources
+        if (l == null) {
+            l = new ArrayList<Resource>(findAllResources());
+        }
+
         // Handle the not expressions
         for (NotExpression req : notExpressions) {
             NotExpression ne = req;
@@ -198,9 +203,7 @@ public abstract class AbstractRepository implements XRepository {
 
     private Collection<Resource> findInverse(RequirementExpression re) {
         Collection<Resource> andProviders = findProvidersImpl(re);
-
-        Requirement matchAll = newRequirementBuilder("osgi.identity").build();
-        Collection<Resource> allResources = findSimpleRequirement(matchAll);
+        Collection<Resource> allResources = findAllResources();
 
         // TODO would be better if this filtering was done lazily
         Collection<Resource> result = new ArrayList<Resource>();
@@ -210,6 +213,11 @@ public abstract class AbstractRepository implements XRepository {
             result.add(res);
         }
         return result;
+    }
+
+    private Collection<Resource> findAllResources() {
+        Requirement matchAll = newRequirementBuilder("osgi.identity").build();
+        return findSimpleRequirement(matchAll);
     }
 
     @Override

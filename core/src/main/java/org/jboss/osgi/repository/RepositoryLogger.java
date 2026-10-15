@@ -54,4 +54,8 @@ public interface RepositoryLogger extends BasicLogger {
     @LogMessage(level = WARN)
     @Message(id = 20402, value = "Cannot infer value type from %s")
     void warnCannotInferValueType(Object value);
+
+    @LogMessage(level = WARN)
+    @Message(id = 20403, value = "Repository referral not followed: %s")
+    void warnReferralNotFollowed(String url);
 }

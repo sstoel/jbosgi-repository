@@ -73,7 +73,8 @@ public class RequirementBuilderImpl implements RequirementBuilder {
 
     @Override
     public synchronized Requirement build() {
-        return new RequirementImpl(namespace, attributes, directives, resource);
+        // A built requirement is not changed by a later use of this builder
+        return new RequirementImpl(namespace, new HashMap<String, Object>(attributes), new HashMap<String, String>(directives), resource);
     }
 
     @Override

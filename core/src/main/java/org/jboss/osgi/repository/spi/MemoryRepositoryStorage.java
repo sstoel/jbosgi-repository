@@ -59,7 +59,8 @@ public class MemoryRepositoryStorage implements RepositoryStorage {
 
     private final XRepository repository;
     private final AtomicLong increment = new AtomicLong();
-    private final Map<String, Map<String, Set<XCapability>>> capabilityCache = new HashMap<String, Map<String, Set<XCapability>>>();
+    // The capabilities by namespace and by the value of the namespace attribute, which can be of any attribute type
+    private final Map<String, Map<Object, Set<XCapability>>> capabilityCache = new HashMap<String, Map<Object, Set<XCapability>>>();
 
     public static final class Factory implements RepositoryStorageFactory {
         @Override
@@ -201,8 +202,12 @@ public class MemoryRepositoryStorage implements RepositoryStorage {
             for (Capability cap : res.getCapabilities(null)) {
                 XCapability xcap = (XCapability) cap;
                 String namespace = cap.getNamespace();
-                String nsvalue = (String) xcap.getAttribute(namespace);
-                Iterator<XCapability> capit = getCachedCapabilities(namespace, nsvalue).iterator();
+                // Remove from the cached set itself, also for a capability without the namespace attribute
+                Map<Object, Set<XCapability>> capmap = capabilityCache.get(namespace);
+                Set<XCapability> capset = capmap != null ? capmap.get(xcap.getAttribute(namespace)) : null;
+                if (capset == null)
+                    continue;
+                Iterator<XCapability> capit = capset.iterator();
                 while (capit.hasNext()) {
                     Resource auxres = capit.next().getResource();
                     if (res == auxres) {
@@ -231,12 +236,12 @@ public class MemoryRepositoryStorage implements RepositoryStorage {
     private void addCachedCapability(XCapability cap) {
         synchronized (capabilityCache) {
             String namespace = cap.getNamespace();
-            Map<String, Set<XCapability>> capmap = capabilityCache.get(namespace);
+            Map<Object, Set<XCapability>> capmap = capabilityCache.get(namespace);
             if (capmap == null) {
-                capmap = new HashMap<String, Set<XCapability>>();
+                capmap = new HashMap<Object, Set<XCapability>>();
                 capabilityCache.put(namespace, capmap);
             }
-            String nsvalue = (String) cap.getAttribute(namespace);
+            Object nsvalue = cap.getAttribute(namespace);
             Set<XCapability> capset = capmap.get(nsvalue);
             if (capset == null) {
                 capset = new HashSet<XCapability>();
@@ -246,11 +251,11 @@ public class MemoryRepositoryStorage implements RepositoryStorage {
         }
     }
 
-    private Set<XCapability> getCachedCapabilities(String namespace, String nsvalue) {
+    private Set<XCapability> getCachedCapabilities(String namespace, Object nsvalue) {
         synchronized (capabilityCache) {
-            Map<String, Set<XCapability>> caps = capabilityCache.get(namespace);
+            Map<Object, Set<XCapability>> caps = capabilityCache.get(namespace);
             if (caps == null) {
-                caps = new HashMap<String, Set<XCapability>>();
+                caps = new HashMap<Object, Set<XCapability>>();
                 capabilityCache.put(namespace, caps);
             }
             Set<XCapability> result;
